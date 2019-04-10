@@ -6,16 +6,21 @@ import com.typesafe.config.Config
 import common.validation.ErrorOr.ErrorOr
 import configs.Result
 import configs.syntax._
-import cromwell.api.model.SubmittedWorkflow
+import cromwell.api.model.{SubmittedWorkflow, WorkflowMetadata}
 
 /**
   * Wraps a response from the cromwell client, either a submitted workflow or an HTTP status/message.
   */
-sealed trait SubmitResponse
+sealed trait SubmitResponse {
+  def cromwellId: Option[String]
+}
+
+case class CromwellId(value: String)
 
 object SubmitResponse {
-  def apply(submittedWorkflow: SubmittedWorkflow): SubmitResponse = {
-    SubmitWorkflowResponse(submittedWorkflow)
+  def apply(submittedWorkflow: SubmittedWorkflow, workflowMetadata: WorkflowMetadata): SubmitResponse = {
+    import centaur.test.metadata.WorkflowFlatMetadata._
+    SubmitWorkflowResponse(submittedWorkflow, workflowMetadata.asFlat.value.get("cromwellId") map { _.toString })
   }
 
   def apply(statusCode: Int, message: String): SubmitResponse = {
@@ -23,9 +28,11 @@ object SubmitResponse {
   }
 }
 
-case class SubmitWorkflowResponse(submittedWorkflow: SubmittedWorkflow) extends SubmitResponse
+case class SubmitWorkflowResponse private(submittedWorkflow: SubmittedWorkflow, cromwellId: Option[String]) extends SubmitResponse
 
-case class SubmitHttpResponse(statusCode: Int, message: String) extends SubmitResponse
+case class SubmitHttpResponse private(statusCode: Int, message: String) extends SubmitResponse {
+  override def cromwellId: Option[String] = None
+}
 
 object SubmitHttpResponse {
 

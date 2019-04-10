@@ -33,18 +33,20 @@ object TestFormulas {
 
   private def runSuccessfulWorkflow(workflow: Workflow): Test[SubmittedWorkflow] = runWorkflowUntilTerminalStatus(workflow, Succeeded)
   private def runFailingWorkflow(workflow: Workflow): Test[SubmittedWorkflow] = runWorkflowUntilTerminalStatus(workflow, Failed)
+  import centaur.test.metadata.WorkflowFlatMetadata._
 
   def runSuccessfulWorkflowAndVerifyMetadata(workflowDefinition: Workflow): Test[SubmitResponse] = for {
     submittedWorkflow <- runSuccessfulWorkflow(workflowDefinition)
     metadata <- validateMetadata(submittedWorkflow, workflowDefinition)
+    cromwellId = metadata.asFlat.value.get("cromwellId") map { _.toString() }
     _ <- validateDirectoryContentsCounts(workflowDefinition, submittedWorkflow, metadata)
-  } yield SubmitResponse(submittedWorkflow)
+  } yield SubmitResponse(submittedWorkflow, metadata)
 
   def runFailingWorkflowAndVerifyMetadata(workflowDefinition: Workflow): Test[SubmitResponse] = for {
     submittedWorkflow <- runFailingWorkflow(workflowDefinition)
     metadata <- validateMetadata(submittedWorkflow, workflowDefinition)
     _ <- validateDirectoryContentsCounts(workflowDefinition, submittedWorkflow, metadata)
-  } yield SubmitResponse(submittedWorkflow)
+  } yield SubmitResponse(submittedWorkflow, metadata)
 
   def runWorkflowTwiceExpectingCaching(workflowDefinition: Workflow): Test[SubmitResponse] = {
     for {
@@ -54,7 +56,7 @@ object TestFormulas {
       metadata <- validateMetadata(secondWf, workflowDefinition, Option(firstWF.id.id))
       _ <- validateNoCacheMisses(secondWf, metadata, workflowDefinition)
       _ <- validateDirectoryContentsCounts(workflowDefinition, secondWf, metadata)
-    } yield SubmitResponse(secondWf)
+    } yield SubmitResponse(secondWf, metadata)
   }
 
   def runWorkflowThriceExpectingCaching(workflowDefinition: Workflow): Test[SubmitResponse] = {
@@ -68,7 +70,7 @@ object TestFormulas {
       metadataThree <- validateMetadata(thirdWf, workflowDefinition, Option(secondWf.id.id))
       _ <- validateNoCacheMisses(thirdWf, metadataThree, workflowDefinition)
       _ <- validateDirectoryContentsCounts(workflowDefinition, thirdWf, metadataThree)
-    } yield SubmitResponse(thirdWf)
+    } yield SubmitResponse(thirdWf, metadataTwo)
   }
 
   def runWorkflowTwiceExpectingNoCaching(workflowDefinition: Workflow): Test[SubmitResponse] = {
@@ -78,7 +80,7 @@ object TestFormulas {
       metadata <- validateMetadata(testWf, workflowDefinition)
       _ <- validateNoCacheHits(testWf, metadata, workflowDefinition)
       _ <- validateDirectoryContentsCounts(workflowDefinition, testWf, metadata)
-    } yield SubmitResponse(testWf)
+    } yield SubmitResponse(testWf, metadata)
   }
 
   def runFailingWorkflowTwiceExpectingNoCaching(workflowDefinition: Workflow): Test[SubmitResponse] = {
@@ -88,7 +90,7 @@ object TestFormulas {
       metadata <- validateMetadata(testWf, workflowDefinition)
       _ <- validateNoCacheHits(testWf, metadata, workflowDefinition)
       _ <- validateDirectoryContentsCounts(workflowDefinition, testWf, metadata)
-    } yield SubmitResponse(testWf)
+    } yield SubmitResponse(testWf, metadata)
   }
   
   private def cromwellRestart(workflowDefinition: Workflow,
@@ -112,7 +114,7 @@ object TestFormulas {
             Test.successful(())
           }
           _ <- validateDirectoryContentsCounts(workflowDefinition, submittedWorkflow, metadata)
-        } yield SubmitResponse(submittedWorkflow)
+        } yield SubmitResponse(submittedWorkflow, metadata)
       case _ if finalStatus == Succeeded => runSuccessfulWorkflowAndVerifyMetadata(workflowDefinition)
       case _ if finalStatus == Failed => runFailingWorkflowAndVerifyMetadata(workflowDefinition)
       case _ => Test.invalidTestDefinition("This test can only run successful or failed workflow", workflowDefinition)
@@ -126,7 +128,7 @@ object TestFormulas {
     _ <- pollUntilStatus(submittedWorkflow, workflowDefinition, Aborted)
     metadata <- validateMetadata(submittedWorkflow, workflowDefinition)
     _ <- validateDirectoryContentsCounts(workflowDefinition, submittedWorkflow, metadata)
-  } yield SubmitResponse(submittedWorkflow)
+  } yield SubmitResponse(submittedWorkflow, metadata)
 
   def scheduledAbort(workflowDefinition: Workflow, callMarker: CallMarker, restart: Boolean): Test[SubmitResponse] = {
     def withRestart() = CentaurConfig.runMode match {
@@ -150,7 +152,7 @@ object TestFormulas {
       _ <- waitFor(30.seconds)
       metadata <- validateMetadata(submittedWorkflow, workflowDefinition)
       _ <- validateDirectoryContentsCounts(workflowDefinition, submittedWorkflow, metadata)
-    } yield SubmitResponse(submittedWorkflow)
+    } yield SubmitResponse(submittedWorkflow, metadata)
   }
 
   def workflowRestart(workflowDefinition: Workflow,
@@ -182,7 +184,7 @@ object TestFormulas {
           metadata <- validateMetadata(second, workflowDefinition, Option(first.id.id))
           _ <- validateNoCacheMisses(second, metadata, workflowDefinition)
           _ <- validateDirectoryContentsCounts(workflowDefinition, second, metadata)
-        } yield SubmitResponse(second)
+        } yield SubmitResponse(second, metadata)
       case _ => Test.invalidTestDefinition("Configuration not supported by PapiUpgradeTest", workflowDefinition)
     }
   }
