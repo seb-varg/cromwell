@@ -15,6 +15,13 @@ object WorkflowMetadataKeys {
   val WorkflowRoot = "workflowRoot"
   val ParentWorkflowId = "parentWorkflowId"
   val RootWorkflowId = "rootWorkflowId"
+  val ProcessingEvent = "processingEvent"
+
+  object ProcessingEvents {
+    val Pickup = "pickup"
+    val Release = "release"
+    val Terminal = "terminal"
+  }
 
   val LanguageName = "actualWorkflowLanguage"
   val LanguageVersionName = "actualWorkflowLanguageVersion"

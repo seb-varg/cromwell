@@ -191,7 +191,7 @@ object CentaurCwlRunner extends StrictLogging {
         case unexpected: SubmitHttpResponse =>
           logger.error(s"Unexpected response: $unexpected")
           ExitCode.Failure
-        case SubmitWorkflowResponse(submittedWorkflow) =>
+        case SubmitWorkflowResponse(submittedWorkflow, _) =>
           val status = CentaurCromwellClient.status(submittedWorkflow).unsafeRunSync()
           status match {
             case unexpected: NonTerminalStatus =>

@@ -3,8 +3,8 @@ package cromwell.engine.workflow.workflowstore
 import akka.actor.{ActorLogging, ActorRef, LoggingFSM, PoisonPill, Props, Timers}
 import cats.data.NonEmptyList
 import cromwell.core.Dispatcher._
+import cromwell.core._
 import cromwell.core.abort.{WorkflowAbortFailureResponse, WorkflowAbortRequestedResponse, WorkflowAbortedResponse}
-import cromwell.core.{WorkflowAborted, WorkflowAborting, WorkflowId, WorkflowSubmitted}
 import cromwell.engine.instrumentation.WorkflowInstrumentation
 import cromwell.engine.workflow.WorkflowManagerActor.WorkflowNotFoundException
 import cromwell.engine.workflow.WorkflowMetadataHelper
@@ -13,11 +13,13 @@ import cromwell.engine.workflow.workflowstore.SqlWorkflowStore.{WorkflowStoreAbo
 import cromwell.engine.workflow.workflowstore.WorkflowStoreActor._
 import cromwell.engine.workflow.workflowstore.WorkflowStoreEngineActor._
 import cromwell.services.instrumentation.CromwellInstrumentationScheduler
+import cromwell.services.metadata.MetadataService.PutMetadataAction
+import cromwell.services.metadata.{MetadataEvent, MetadataKey, MetadataValue}
 import cromwell.util.GracefulShutdownHelper.ShutdownCommand
 import org.apache.commons.lang3.exception.ExceptionUtils
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Random, Success}
 
 final case class WorkflowStoreEngineActor private(store: WorkflowStore,
                                                   workflowStoreAccess: WorkflowStoreAccess,
@@ -97,6 +99,12 @@ final case class WorkflowStoreEngineActor private(store: WorkflowStore,
   }
 
   private def startNewWork(command: WorkflowStoreActorEngineCommand, sndr: ActorRef, nextData: WorkflowStoreActorData) = {
+    def randomNumberString: String = Random.nextInt.toString.stripPrefix("-")
+
+    def metadataKey(workflowId: WorkflowId, randomNumberString: String, key: String) =
+      MetadataKey(workflowId = workflowId, jobKey = None, s"${WorkflowMetadataKeys.ProcessingEvent}[$randomNumberString]:$key")
+
+
     val work: Future[Any] = command match {
       case FetchRunnableWorkflows(count) =>
         newWorkflowMessage(count) map { response =>
@@ -109,6 +117,21 @@ final case class WorkflowStoreEngineActor private(store: WorkflowStore,
                 workflowHeartbeatConfig.cromwellId,
                 workflowsIds.mkString(", ")
               )
+
+              val pickupMetadata: List[MetadataEvent] = workflowsIds flatMap { id =>
+                val random = randomNumberString
+
+                val processingFields = Map(
+                  "description" -> WorkflowMetadataKeys.ProcessingEvents.Pickup,
+                  "cromwellId" -> workflowHeartbeatConfig.cromwellId
+                )
+
+                processingFields.toList map { case (k, v) =>
+                  MetadataEvent(metadataKey(workflowId = id, randomNumberString = random, key = k), MetadataValue(v))
+                }
+              }
+              serviceRegistryActor ! PutMetadataAction(pickupMetadata)
+
             case NoNewWorkflowsToStart => log.debug("No workflows fetched by {}", workflowHeartbeatConfig.cromwellId)
             case _ => log.error("Unexpected response from newWorkflowMessage({}): {}", count, response)
           }
