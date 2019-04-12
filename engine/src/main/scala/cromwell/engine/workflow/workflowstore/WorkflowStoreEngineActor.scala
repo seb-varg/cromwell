@@ -121,12 +121,12 @@ final case class WorkflowStoreEngineActor private(store: WorkflowStore,
               val pickupMetadata: List[MetadataEvent] = workflowsIds flatMap { id =>
                 val random = randomNumberString
 
-                val processingFields = Map(
+                val processingFields = List(
                   "description" -> WorkflowMetadataKeys.ProcessingEvents.Pickup,
                   "cromwellId" -> workflowHeartbeatConfig.cromwellId
                 )
 
-                processingFields.toList map { case (k, v) =>
+                processingFields map { case (k, v) =>
                   MetadataEvent(metadataKey(workflowId = id, randomNumberString = random, key = k), MetadataValue(v))
                 }
               }
