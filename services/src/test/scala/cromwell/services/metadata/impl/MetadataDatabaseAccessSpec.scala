@@ -15,6 +15,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import org.specs2.mock.Mockito
+import common.util.TimeUtil._
 
 import scala.concurrent.{ExecutionContext, Future}
 object MetadataDatabaseAccessSpec {
@@ -70,10 +71,10 @@ class MetadataDatabaseAccessSpec extends FlatSpec with Matchers with ScalaFuture
 
       val workflowKey = MetadataKey(workflowId, jobKey = None, key = null)
       def keyAndValue(name: String) = Array(
-        (WorkflowMetadataKeys.SubmissionTime, OffsetDateTime.now.toString),
+        (WorkflowMetadataKeys.SubmissionTime, OffsetDateTime.now.asUtcString),
         (WorkflowMetadataKeys.Status, WorkflowSubmitted.toString),
         (WorkflowMetadataKeys.Name, name),
-        (WorkflowMetadataKeys.StartTime, OffsetDateTime.now.toString)
+        (WorkflowMetadataKeys.StartTime, OffsetDateTime.now.asUtcString)
       ) ++ labelMetadata
 
       publishMetadataEvents(workflowKey, keyAndValue(name)).map(_ => workflowId)
@@ -85,7 +86,7 @@ class MetadataDatabaseAccessSpec extends FlatSpec with Matchers with ScalaFuture
       val metadataKeys = Array(
         (WorkflowMetadataKeys.Status, WorkflowRunning.toString),
         (WorkflowMetadataKeys.Name, subworkflowName),
-        (WorkflowMetadataKeys.StartTime, OffsetDateTime.now.toString),
+        (WorkflowMetadataKeys.StartTime, OffsetDateTime.now.asUtcString),
         (WorkflowMetadataKeys.ParentWorkflowId, parentWorkflowId.toString),
         (WorkflowMetadataKeys.RootWorkflowId, parentWorkflowId.toString),
       )
@@ -154,7 +155,7 @@ class MetadataDatabaseAccessSpec extends FlatSpec with Matchers with ScalaFuture
         val keyAndValue = Array(
           (WorkflowMetadataKeys.Status, WorkflowRunning.toString),
           (WorkflowMetadataKeys.Status, WorkflowSucceeded.toString),
-          (WorkflowMetadataKeys.EndTime, OffsetDateTime.now.toString))
+          (WorkflowMetadataKeys.EndTime, OffsetDateTime.now.asUtcString))
 
         publishMetadataEvents(workflowKey, keyAndValue)
       }
