@@ -6,6 +6,15 @@
 
 When set, the configuration value of `system.cromwell_id` will be prepended to StatsD metrics. More info [here](https://cromwell.readthedocs.io/en/stable/developers/Instrumentation/).
 
+### Heartbeat failure shutdown
+
+When a Cromwell instance is unable to write heartbeats for some period of time it will automatically shut down. For more
+information see the docs on [configuring Workflow Hearbeats](https://cromwell.readthedocs.io/en/stable/Configuring/).
+
+NOTE: In the remote chance that the `system.workflow-heartbeats.ttl` has been configured to be less than `5 minutes`
+then the new configuration value `system.workflow-heartbeats.write-failure-shutdown-duration` must also be explicitly
+set less than the `ttl`.
+
 ### Bug fixes
 
 #### WDL 1.0 strings can contain escaped quotes
@@ -19,6 +28,11 @@ Cromwell's WDL 1.0 implementation now allows empty call blocks, e.g. `call task_
 #### Packed CWL bugfix
 
 Fixed a bug that caused an error like `Custom type was referred to but not found` to be issued when using an imported type as a `SchemaDefRequirement` in packed CWL.
+
+#### Better validation of workflow heartbeats
+
+An error will be thrown on startup when the `system.workflow-heartbeats.heartbeat-interval` is not less than the
+`system.workflow-heartbeats.ttl`.
 
 ## 39 Release Notes
 
