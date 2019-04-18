@@ -429,15 +429,16 @@ class PipelinesApiAsyncBackendJobExecutionActor(override val standardParams: Sta
           cloudCallRoot = callRootPath,
           commandScriptContainerPath = cmdInput.containerPath,
           logGcsPath = jesLogPath,
-          inputOutputParameters,
-          googleProject(jobDescriptor.workflowDescriptor),
-          computeServiceAccount(jobDescriptor.workflowDescriptor),
-          backendLabels,
-          preemptible,
-          pipelinesConfiguration.jobShell,
-          dockerKeyAndToken,
-          jobDescriptor.workflowDescriptor.outputRuntimeExtractor,
-          adjustedSizeDisks
+          inputOutputParameters = inputOutputParameters,
+          projectId = googleProject(jobDescriptor.workflowDescriptor),
+          computeServiceAccount = computeServiceAccount(jobDescriptor.workflowDescriptor),
+          labels = backendLabels,
+          preemptible = preemptible,
+          jobShell = pipelinesConfiguration.jobShell,
+          privateDockerKeyAndEncryptedToken = dockerKeyAndToken,
+          womOutputRuntimeExtractor = jobDescriptor.workflowDescriptor.outputRuntimeExtractor,
+          adjustedSizeDisks = adjustedSizeDisks,
+          virtualPrivateCloudConfiguration = jesAttributes.virtualPrivateCloudConfiguration
         )
       case Some(other) =>
         throw new RuntimeException(s"Unexpected initialization data: $other")
