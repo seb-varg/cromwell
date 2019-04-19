@@ -1,5 +1,17 @@
 # Cromwell Change Log
 
+## 41 Release Notes
+
+### Config Changes
+
+#### PAPI long running jobs
+
+The PAPI and PAPIv2 backends can now emit slow job warnings after a configurable time running in PAPI:
+```conf
+# Emit a warning if jobs last longer than this amount of time. This might indicate that something got stuck in PAPI.
+backend.providers.PAPIv2.config.slow-job-warning-time: 24 hours
+```
+
 ## 40 Release Notes
 
 ### Config Changes
